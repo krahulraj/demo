@@ -1,3 +1,5 @@
+import 'dart:math';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart'  as path;
 import 'package:hive/hive.dart';
@@ -8,6 +10,8 @@ void main() async {
   final dir= await path.getApplicationDocumentsDirectory();
   Hive.init(dir.path);
   Hive.initFlutter('hive_db');
+  await Hive.openBox('home');
+  await Hive.openBox('password');
   runApp(MaterialApp(
     theme: ThemeData(
       primarySwatch: Colors.cyan
@@ -28,6 +32,16 @@ class _SignupState extends State<Signup> {
   bool _obscureText = true;
   TextEditingController passwordController1 = TextEditingController();
   TextEditingController passwordController2 = TextEditingController();
+  TextEditingController nameController=TextEditingController();
+
+  late Box logBox;
+
+  @override
+  void initState() {
+    super.initState();
+    logBox=Hive.box('home');
+    logBox.put('vassar', 'vassar123');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +58,7 @@ class _SignupState extends State<Signup> {
             child: Column(
               children: [
                 TextFormField(
+                  controller: nameController,
                   keyboardType: TextInputType.text,
                   decoration: InputDecoration(
                     hintText: 'Enter name',
@@ -118,18 +133,25 @@ class _SignupState extends State<Signup> {
                       backgroundColor: MaterialStateProperty.all(Colors.blueGrey)
                     ),
                     onPressed: (){
+                      String name=nameController.text.toString();
+                      String pass=passwordController1.text.toString();
+                      logBox.put(name,pass);
+                      print('name: $name');
+                      print('password: $pass');
                       Navigator.push(context, MaterialPageRoute(builder: (context)=>Login()));
                     },child: Text('Signin',style: TextStyle(color: Colors.white),),),
                 ),
                 const SizedBox(height: 5,),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                   Text('Already have Account?', style: TextStyle(color: Colors.redAccent),),
                   ElevatedButton(onPressed:(){
                     Navigator.push(context, MaterialPageRoute(builder: (context)=>Login()),);
                   }, child: Text('Login',style: TextStyle(color: Colors.white),),
                     style: ButtonStyle(backgroundColor:MaterialStateProperty.all(Colors.blueGrey)),),
+
+                 //   Text(logBox.get('vassar')),
                 ],)
               ],
             ),
@@ -151,6 +173,15 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   TextEditingController nameController=TextEditingController();
   TextEditingController passwordController=TextEditingController();
+  late Box logBox;
+  String? nametext;
+  @override
+  void initState() {
+    super.initState();
+
+    logBox=Hive.box('home');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -185,9 +216,13 @@ class _LoginState extends State<Login> {
           const SizedBox(height: 15,),
           Center(
             child: ElevatedButton(onPressed: (){
-              if((nameController.text.toString()=="vassar") && (passwordController.text.toString()=="vassar123"))
+              setState(() {
+                nametext=nameController.text.toString();
+              });
+              if(logBox.get(nameController.text.toString())==passwordController.text.toString())
                 {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login sucessful')));
+                  Navigator.push(context, MaterialPageRoute(builder: (context)=> Home()));
                 }
               else
                 {
@@ -195,11 +230,57 @@ class _LoginState extends State<Login> {
                 }
             },child: Text('Login',style: TextStyle(color: Colors.white),),
             style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.blueGrey)),),
-          )
+          ),
         ],
       ),),
 
     );
   }
 }
+
+
+class Home extends StatefulWidget {
+  const Home({super.key});
+
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  late Box homeBox;
+  late Box logBox;
+
+  @override
+//  @override
+  void initState() {
+    super.initState();
+    homeBox=Hive.box('home');
+    homeBox.put('1','vassar');
+    homeBox.put('2','basar');
+    homeBox.put('3','hyderabad');
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Welcome'),
+        centerTitle: true,
+        backgroundColor: Colors.blueGrey,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(homeBox.get('1')),
+            Text(homeBox.get('2')),
+            Text(homeBox.get('3')),
+           Text(homeBox.get('vassar')),
+         //   Text(homeBox.get('Rahul ')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 
